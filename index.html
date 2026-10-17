@@ -1,1 +1,817 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#160d10">
+<title>Soda Seeker</title>
+<link rel="stylesheet"
+ href="https://fonts.googleapis.com/css2?family=Pirata+One&display=swap">
+<link rel="stylesheet"
+ href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{color-scheme:dark;font-family:system-ui,sans-serif;background:#130d10;color:#f3edef}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(ellipse at top right,#70233355,transparent 55%),#130d10}
+.shell{max-width:740px;margin:auto;padding:24px 18px 60px}
+.row,.brand{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.brand{flex-wrap:nowrap}
+.between{justify-content:space-between}
+header{padding:22px;margin-bottom:20px;border:1px solid #99465750;border-radius:18px;background:linear-gradient(120deg,#58212fbb,#28131d80)}
+.logo{width:44px;height:48px;flex-shrink:0;border:1px dashed #ad7b87;border-radius:8px;display:grid;place-items:center;color:#d1adb6;font-size:8px;letter-spacing:1px}
+h1{font-family:"Pirata One",Georgia,serif;font-size:clamp(36px,10vw,55px);font-weight:400;margin:0;color:#fff1f3}
+h2{font-size:20px;margin:6px 0 12px}
+h3{font-size:17px;margin:8px 0}
+p{line-height:1.5}
+.muted,small{color:#c1afb8}
+header p{margin:10px 0 0;color:#dbc4cd}
+button,input,select{font:inherit}
+button{cursor:pointer;border:1px solid #9a526155;border-radius:9px;padding:12px 14px;background:#42232e;color:#fff0f4;font-weight:650}
+button.primary{background:#943d51;border-color:#be687c}
+button:disabled{opacity:.5;cursor:wait}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #e2a0af;outline-offset:3px}
+input,select{width:100%;padding:12px;min-height:46px;border:1px solid #754754;border-radius:8px;background:#20141b;color:#fff1f5}
+input
+label{display:block;font-size:13px;margin:16px 0 7px}
+.check{display:flex;gap:10px;align-items:center}
+.check input,.radio input{width:18px;min-height:18px;height:18px;accent-color:#ba5870;flex-shrink:0}
+.radio{display:flex;gap:9px;align-items:center;margin:8px 0}
+fieldset{border:1px solid #99536645;border-radius:10px;padding:12px;margin:18px 0}
+legend{padding:0 5px;font-size:13px}
+.panel,.card{background:linear-gradient(135deg,#542332a6,#26171fdd);border:1px solid #99536645;border-radius:17px;padding:18px;margin:14px 0;backdrop-filter:blur(12px)}
+.card{border-left:3px solid #b65a70}
+.tag{display:inline-block;color:#e0bdc9;background:#9d42551a;border:1px solid #a9586c50;border-radius:5px;padding:5px 8px;font-size:10px;letter-spacing:.7px}
+#map{height:310px;border-radius:12px;overflow:hidden;background:#30222b;margin-top:14px;color:#151518;isolation:isolate}
+.leaflet-tile-pane{filter:saturate(.5)}
+.leaflet-control-attribution{font-size:9px!important}
+.face-marker{display:grid;place-items:center;font-size:25px;background:#341d27ee;border:1px solid #c37b8e;border-radius:50%}
+.pin-marker{background:#b44862;border:3px solid white;border-radius:50%}
+.you-marker{background:#83b5e8;border:3px solid white;border-radius:50%}
+#radar{width:180px;aspect-ratio:1;margin:18px auto;border:1px solid #b86a7c80;border-radius:50%;position:relative;overflow:hidden;background:repeating-radial-gradient(circle,transparent 0 29px,#d4869a35 30px 31px),#26131d}
+.sweep{position:absolute;inset:0;background:conic-gradient(transparent 65%,#ce657c50);animation:spin 5s linear infinite;pointer-events:none}
+.center{position:absolute;left:50%;top:50%;width:6px;height:6px;border-radius:50%;background:#fff1f4;transform:translate(-50%,-50%)}
+.radar-face{position:absolute;transform:translate(-50%,-50%);font-size:19px;line-height:1;padding:2px;background:transparent;border:0;z-index:2}
+.distance{font-size:12px;color:#e2b6c4}
+.card-title{display:flex;gap:10px;align-items:center}
+.card-title span{font-size:28px}
+.drink{display:flex;justify-content:space-between;gap:10px;align-items:center;border-top:1px solid #e0a8ba18;padding:12px 0}
+.drink small{display:block;margin-top:4px}
+.stock{white-space:nowrap;font-size:9px;letter-spacing:.5px;border:1px solid;border-radius:5px;padding:5px 7px}
+.stock:before{content:"";display:inline-block;width:5px;height:5px;border-radius:50%;background:currentColor;box-shadow:0 0 7px currentColor;margin-right:6px}
+.stock.in{color:#afd8b9;border-color:#afd8b940}
+.stock.low{color:#e4c78b;border-color:#e4c78b40}
+.stock.empty{color:#efa1b5;border-color:#efa1b540}
+.stock.unknown{color:#c4b6bf;border-color:#c4b6bf40}
+.cards-badge{display:inline-block;font-size:11px;color:#e9cbd6;border:1px solid #ad6c8140;border-radius:5px;padding:6px 9px;margin:10px 0}
+.full{width:100%;margin-top:12px}
+#message{color:#e4d9dd;white-space:pre-line;font-size:13px}
+#message:empty{display:none}
+dialog{width:min(94vw,540px);max-height:88vh;overflow:auto;border:1px solid #a96278;border-radius:16px;padding:22px;color:#f4eaf0;background:linear-gradient(145deg,#3a1e2a,#21151e)}
+dialog
+.actions{margin-top:22px}
+.error{color:#ffc0d1;white-space:pre-line}
+summary{cursor:pointer;padding:10px 0}
+.pending{border-top:1px solid #e0a8ba25;padding:15px 0}
+.points{font-size:28px;font-weight:750;color:#f0c4d2}
+.choice{border-bottom:1px solid #e0a8ba18;padding:5px 0}
+.choice>label{padding:8px 0;margin:0}
+.choice-fields{padding:0 0 14px 28px}
+.choice-fields label{margin-top:8px}
+.columns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+#drinkChoices{max-height:360px;overflow:auto;padding-right:8px;margin-top:12px}
+a{color:#f0bfd0}
+[hidden]{display:none!important}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.sweep{animation:none}}
+@media(max-width:360px){.drink{flex-wrap:wrap}.columns{grid-template-columns:1fr}header{padding:16px}}
+</style>
+</head>
+<body>
+<div class="shell">
+<header>
+  <div class="brand">
+    <span class="logo" aria-label="Reserved for final logo">LOGO</span>
+    <h1>Soda Seeker</h1>
+  </div>
+  <p>Find your favorite drink.</p>
+</header>
 
+<section class="panel">
+  <div class="row between">
+    <strong id="accountStatus">Connecting…</strong>
+    <button id="openLogin" type="button">Sign in</button>
+    <button id="logout" type="button" hidden>Sign out</button>
+  </div>
+  <p id="accountHelp" class="muted">
+    Browse approved machines. Sign in to contribute.
+  </p>
+</section>
+
+<p id="message" role="status" aria-live="polite"></p>
+
+<section class="panel">
+  <div class="row between">
+    <strong>Machine map</strong><span class="tag">SHARED DATABASE</span>
+  </div>
+  <p class="muted">
+    Use your location to sort by distance, or move the map and drop a pin.
+    No location permission is needed to report a machine elsewhere.
+  </p>
+  <button id="locate" type="button">Use my location</button>
+  <div id="map" aria-label="Street map"></div>
+  <div id="radar" role="group" aria-label="Machine radar">
+    <div class="sweep" aria-hidden="true"></div>
+    <span class="center" aria-hidden="true"></span>
+  </div>
+  <div class="row between">
+    <small id="radarHelp">Use your location to show nearby signals.</small>
+    <button id="refresh" type="button">Refresh reports</button>
+  </div>
+</section>
+
+<section class="panel">
+  <label for="drinkFilter">Find a drink</label>
+  <select id="drinkFilter"><option value="">All drinks</option></select>
+  <label class="check">
+    <input id="hideEmpty" type="checkbox"> Hide empty machines
+  </label>
+</section>
+
+<div class="row between">
+  <strong id="count">Loading machines…</strong>
+  <button id="addMachine" class="primary" type="button">＋ Add machine</button>
+</div>
+<main id="machines"></main>
+
+<section style="margin-top:30px">
+  <div class="row between">
+    <div><h2>On the Lookout</h2><small>Can’t find your pop? Start a search.</small></div>
+    <button id="newRequest" class="primary" type="button">＋ Request a drink</button>
+  </div>
+  <div class="panel">
+    <div class="row between">
+      <strong>Your points</strong><span id="points" class="points">—</span>
+    </div>
+    <p>Keep finding. Keep earning. Something cool is in the works!</p>
+    <p class="muted">
+      Earn 10 points when your find is approved.
+      Rewards are planned—we’ll announce the details here.
+      Points aren’t redeemable yet.
+    </p>
+  </div>
+  <div id="requests"></div>
+</section>
+
+<details id="ownerPanel" class="panel" hidden>
+  <summary>Owner approvals</summary>
+  <p class="muted">
+    Review submissions for accuracy and inappropriate content before approval.
+    Automatic screening is not connected.
+  </p>
+  <div id="approvals"></div>
+</details>
+
+<p class="muted" style="font-size:11px">
+  Stock is user-reported, not live telemetry.
+  This browser version uses shared Supabase data.
+  The final logo and notification tone have not been added.
+</p>
+</div>
+
+<dialog id="loginDialog" aria-labelledby="loginTitle">
+<form id="loginForm">
+  <h2 id="loginTitle">Sign in to Soda Seeker</h2>
+  <label for="email">Email</label>
+  <input id="email" type="email" autocomplete="username" required>
+  <label for="password">Password</label>
+  <input id="password" type="password" autocomplete="current-password" required>
+  <p id="loginError" class="error" role="alert"></p>
+  <div class="row between actions">
+    <button id="cancelLogin" type="button">Cancel</button>
+    <button id="signIn" class="primary" type="submit">Sign in</button>
+  </div>
+  <p class="muted">
+    For this test, use an account created in Supabase Authentication.
+    Public registration will be added with the published app.
+  </p>
+</form>
+</dialog>
+
+<dialog id="machineDialog" aria-labelledby="machineTitle">
+<form id="machineForm">
+  <h2 id="machineTitle">Add a machine</h2>
+  <p class="muted">Every question is optional. Add what you know.</p>
+
+  <div class="panel">
+    <strong id="pinStatus"></strong>
+    <p class="muted">No pin? Save a private draft and add the location later.</p>
+    <div class="row">
+      <button id="useLocation" type="button">Use my location</button>
+      <button id="choosePin" type="button">Choose on map</button>
+      <button id="clearPin" type="button">Clear pin</button>
+    </div>
+  </div>
+
+  <label for="place">Building or location</label>
+  <input id="place" maxlength="90" placeholder="e.g. Downtown Fulton, Illinois">
+
+  <fieldset>
+    <legend>Where is the machine?</legend>
+    <div class="row">
+      <label class="radio"><input name="setting" type="radio" value="inside"> Inside</label>
+      <label class="radio"><input name="setting" type="radio" value="outside"> Outside</label>
+    </div>
+    <button id="clearSetting" type="button">Clear choice</button>
+  </fieldset>
+
+  <label for="detail">Extra location details</label>
+  <input id="detail" maxlength="140" placeholder="e.g. By the west entrance">
+
+  <label for="brand">Machine brand</label>
+  <select id="brand">
+    <option value="">Not reported</option>
+    <option>Coke</option><option>Pepsi</option>
+    <option>Dr. Pepper</option><option>Other</option>
+  </select>
+
+  <h3 style="margin-top:24px">Which drinks does it have?</h3>
+  <p class="muted">Select all that you know. Prices and stock are optional.</p>
+
+  <label for="currency">Currency for these prices</label>
+  <select id="currency">
+    <option value="USD">USD — US dollar</option>
+    <option value="CAD">CAD — Canadian dollar</option>
+    <option value="EUR">EUR — Euro</option>
+    <option value="GBP">GBP — British pound</option>
+    <option value="AUD">AUD — Australian dollar</option>
+    <option value="MXN">MXN — Mexican peso</option>
+    <option value="JPY">JPY — Japanese yen</option>
+  </select>
+
+  <label for="drinkSearch">Search drinks</label>
+  <input id="drinkSearch" type="search" placeholder="e.g. Fanta">
+  <div id="drinkChoices"></div>
+  <p id="selectedCount" class="muted" aria-live="polite"></p>
+
+  <details class="panel">
+    <summary>＋ Suggest a missing drink</summary>
+    <label for="customDrink">Drink name</label>
+    <input id="customDrink" maxlength="80">
+    <button id="addCustomDrink" class="full" type="button">Add to report</button>
+    <small>Missing drinks wait for owner approval.</small>
+  </details>
+
+  <label class="check">
+    <input id="cards" type="checkbox"> Does this machine accept cards?
+  </label>
+  <p id="machineError" class="error" role="alert"></p>
+  <div class="row between actions">
+    <button id="cancelMachine" type="button">Cancel</button>
+    <button id="saveMachine" class="primary" type="submit">Submit for review</button>
+  </div>
+</form>
+</dialog>
+
+<dialog id="requestDialog" aria-labelledby="requestTitle">
+<form id="requestForm">
+  <h2 id="requestTitle">What are you looking for?</h2>
+  <label for="wantedDrink">Drink</label>
+  <input id="wantedDrink" maxlength="80" list="drinkSuggestions" placeholder="e.g. Grape Sunkist">
+  <datalist id="drinkSuggestions"></datalist>
+  <label for="wantedArea">Area</label>
+  <input id="wantedArea" maxlength="120" placeholder="e.g. Fulton, Illinois">
+  <p class="muted">Questions are optional. Your request waits for review.</p>
+  <p id="requestError" class="error" role="alert"></p>
+  <div class="row between actions">
+    <button id="cancelRequest" type="button">Cancel</button>
+    <button id="saveRequest" class="primary" type="submit">Submit request</button>
+  </div>
+</form>
+</dialog>
+
+<dialog id="findDialog" aria-labelledby="findTitle">
+<form id="findForm">
+  <h2 id="findTitle">Found it!</h2>
+  <label for="foundLocation">Machine address or building</label>
+  <input id="foundLocation" maxlength="180">
+  <label for="foundDetail">Details</label>
+  <input id="foundDetail" maxlength="240">
+  <p class="muted">Questions are optional. Points are awarded only after approval.</p>
+  <p id="findError" class="error" role="alert"></p>
+  <div class="row between actions">
+    <button id="cancelFind" type="button">Cancel</button>
+    <button id="saveFind" class="primary" type="submit">Submit find</button>
+  </div>
+</form>
+</dialog>
+
+<dialog id="routeDialog" aria-labelledby="routeTitle">
+  <h2 id="routeTitle"></h2>
+  <div id="routeContent"></div>
+  <button id="closeRoute" class="full" type="button">Close</button>
+</dialog>
+
+<script>
+(()=>{
+"use strict";
+const $=id=>document.getElementById(id);
+const labels={in:"IN STOCK",low:"LOW STOCK",empty:"EMPTY",unknown:"NOT REPORTED"};
+const knownCurrencies=["USD","CAD","EUR","GBP","AUD","MXN","JPY"];
+const key="sb_publishable_gDxgwUusKQhVoJcPcwolNQ_TenuZnOM";
+if(!window.supabase){
+  $("accountStatus").textContent="Connection library unavailable";
+  $("message").textContent="Check your internet connection and reload.";
+  return;
+}
+const db=window.supabase.createClient(
+  "https://esfxtdlglsnqyzmzxrqn.supabase.co",key,
+  {auth:{persistSession:false,autoRefreshToken:true,detectSessionInUrl:false}}
+);
+let user=null,owner=false,drinks=[],machines=[],requests=[],finds=[],awards=[];
+let map=null,markers=null,pinMarker=null,youMarker=null;
+let origin=null,pin=null,picking=false,editing=null,currentRequest=null;
+let selections=new Map(),loadVersion=0,autoCentered=false;
+
+function node(tag,text,className){
+  const n=document.createElement(tag);
+  if(text!==undefined)n.textContent=text;
+  if(className)n.className=className;
+  return n;
+}
+function button(text,action,className){
+  const b=node("button",text,className);
+  b.type="button";b.onclick=action;return b;
+}
+function notify(text){$("message").textContent=text;}
+function must(result){if(result.error)throw result.error;return result.data;}
+function needLogin(){
+  if(user)return true;
+  $("loginError").textContent="";
+  $("loginDialog").showModal();return false;
+}
+function hasPin(m){return Number.isFinite(m.latitude)&&Number.isFinite(m.longitude);}
+function nameOf(d){return d.drinks?d.drinks.name:"Drink awaiting approval";}
+function amount(value,currency){
+  try{return new Intl.NumberFormat(undefined,{style:"currency",currency}).format(value);}
+  catch{return value+" "+currency;}
+}
+function distance(m){
+  if(!origin||!hasPin(m))return Infinity;
+  const rad=n=>n*Math.PI/180;
+  const a=rad(m.latitude-origin.lat),b=rad(m.longitude-origin.lng);
+  const h=Math.sin(a/2)**2+
+    Math.cos(rad(origin.lat))*Math.cos(rad(m.latitude))*Math.sin(b/2)**2;
+  return 20902231*2*Math.asin(Math.sqrt(Math.min(1,h)));
+}
+function distanceText(feet){
+  return feet<5280?`${Math.round(feet)} ft`:`${(feet/5280).toFixed(1)} mi`;
+}
+function face(i,total){return total<2||i===0?"😌":i===total-1?"🥵":"😅";}
+function publicDrinks(){
+  return drinks.filter(d=>d.status==="approved");
+}
+function updateCatalog(){
+  const selected=$("drinkFilter").value;
+  $("drinkFilter").replaceChildren(new Option("All drinks",""));
+  publicDrinks().forEach(d=>$("drinkFilter").add(new Option(d.name,d.id)));
+  if(publicDrinks().some(d=>d.id===selected))$("drinkFilter").value=selected;
+  $("drinkSuggestions").replaceChildren();
+  publicDrinks().forEach(d=>{
+    const o=document.createElement("option");o.value=d.name;
+    $("drinkSuggestions").append(o);
+  });
+}
+async function load(){
+  const version=++loadVersion;
+  $("refresh").disabled=true;
+  try{
+    const responses=await Promise.all([
+      db.from("drinks").select("*").order("name").limit(1000),
+      db.from("machines").select("*,machine_drinks(*,drinks(id,name,status))")
+        .order("created_at",{ascending:false}).limit(300),
+      db.from("lookout_requests").select("*")
+        .order("created_at",{ascending:false}).limit(300),
+      db.from("lookout_finds").select("*")
+        .order("created_at",{ascending:false}).limit(1000),
+      user?db.from("point_awards").select("points").eq("user_id",user.id).limit(1000):
+        Promise.resolve({data:[],error:null})
+    ]);
+    const data=responses.map(must);
+    if(version!==loadVersion)return;
+    [drinks,machines,requests,finds,awards]=data;
+    updateCatalog();renderMachines();renderRequests();renderOwner();
+    $("points").textContent=user?
+      String(awards.reduce((sum,a)=>sum+a.points,0)):"—";
+    if(map&&!autoCentered){
+      const first=machines.find(hasPin);
+      if(first&&!origin){
+        map.setView([first.latitude,first.longitude],15);
+        autoCentered=true;
+      }
+    }
+  }catch(error){
+    if(version===loadVersion)notify("Could not load reports: "+error.message);
+  }finally{
+    if(version===loadVersion)$("refresh").disabled=false;
+  }
+}
+
+if(typeof L!=="undefined"){
+  map=L.map("map").setView([41.867,-90.16],13);
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{
+    maxZoom:19,
+    attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+  }).addTo(map);
+  markers=L.layerGroup().addTo(map);
+  map.on("click",event=>{
+    pin={lat:event.latlng.lat,lng:event.latlng.lng};updatePin();
+    if(picking){picking=false;$("machineDialog").showModal();}
+    else notify("Pin selected. Tap Add machine to report it.");
+  });
+}else $("map").textContent="Map unavailable. Check your internet connection.";
+
+function updatePin(){
+  if(map){
+    if(pinMarker)map.removeLayer(pinMarker);
+    pinMarker=null;
+    if(pin)pinMarker=L.marker([pin.lat,pin.lng],{
+      icon:L.divIcon({className:"pin-marker",iconSize:[16,16],iconAnchor:[8,8]}),
+      interactive:false
+    }).addTo(map);
+  }
+  $("pinStatus").textContent=pin?
+    `${pin.lat.toFixed(5)}, ${pin.lng.toFixed(5)}`:"No location selected";
+  $("saveMachine").textContent=pin?"Submit for review":"Save private draft";
+}
+function locate(forReport=false){
+  if(!navigator.geolocation){notify("Location unavailable. Choose a pin on the map.");return;}
+  notify("Requesting location…");
+  navigator.geolocation.getCurrentPosition(position=>{
+    origin={lat:position.coords.latitude,lng:position.coords.longitude};
+    if(map){
+      map.setView([origin.lat,origin.lng],16);
+      if(youMarker)map.removeLayer(youMarker);
+      youMarker=L.marker([origin.lat,origin.lng],{
+        icon:L.divIcon({className:"you-marker",iconSize:[16,16],iconAnchor:[8,8]})
+      }).addTo(map).bindTooltip("Your location");
+    }
+    if(forReport){pin={...origin};updatePin();}
+    notify(`Location accuracy about ${Math.round(position.coords.accuracy)} m. Check the pin.`);
+    renderMachines();
+  },()=>{
+    const message="Location unavailable. You can still drop a pin manually.";
+    notify(message);
+    if(forReport)$("machineError").textContent=message;
+  },{enableHighAccuracy:true,timeout:12000,maximumAge:30000});
+}
+function visibleInventory(m){
+  return m.machine_drinks.filter(d=>
+    (!$("drinkFilter").value||d.drink_id===$("drinkFilter").value)&&
+    (!$("hideEmpty").checked||d.stock!=="empty"));
+}
+function renderMachines(){
+  const results=machines.filter(m=>{
+    if($("drinkFilter").value)return visibleInventory(m).length>0;
+    if($("hideEmpty").checked&&m.machine_drinks.length)return visibleInventory(m).length>0;
+    return true;
+  }).sort((a,b)=>origin?distance(a)-distance(b):0);
+  $("machines").replaceChildren();
+  $("radar").querySelectorAll(".radar-face").forEach(n=>n.remove());
+  if(markers)markers.clearLayers();
+  $("count").textContent=`${results.length} loaded machines / drafts`;
+  $("radarHelp").textContent=origin?
+    "😌 Closer · 😅 Farther · 🥵 Farthest":
+    "Use your location to show nearby signals.";
+  const pinned=results.filter(hasPin);
+  const radius=origin?pinned.reduce((r,m)=>Math.max(r,distance(m)),600):600;
+
+  results.forEach(m=>{
+    const index=pinned.findIndex(p=>p.id===m.id);
+    const emoji=origin&&hasPin(m)?face(index,pinned.length):"📍";
+    const card=node("article",undefined,"card");
+    const heading=node("div",undefined,"card-title");
+    heading.append(node("span",emoji),node("h2",m.location_name||"Machine"));
+    card.append(heading,node("span",!hasPin(m)?"PRIVATE DRAFT":m.status.toUpperCase(),"tag"));
+    if(origin&&hasPin(m))card.append(node("p",distanceText(distance(m))+" away · straight line","distance"));
+    if(m.setting)card.append(node("p",m.setting==="inside"?"Inside":"Outside"));
+    card.append(node("p",m.location_details||"Extra location details not reported.","muted"));
+    if(m.brand)card.append(node("small",m.brand));
+    if(m.accepts_cards)card.append(node("div","Accepts cards","cards-badge"));
+    if(!m.machine_drinks.length)card.append(node("p","Drinks not reported.","muted"));
+    visibleInventory(m).forEach(d=>{
+      const row=node("div",undefined,"drink"),info=node("div");
+      info.append(node("strong",nameOf(d)),
+        node("small",d.price===null?"Price not reported":amount(d.price,d.currency)+" / can"),
+        node("small","Reported "+new Date(d.reported_at).toLocaleString()));
+      row.append(info,node("span",labels[d.stock],"stock "+d.stock));card.append(row);
+    });
+    if(hasPin(m))card.append(button("Walking directions",()=>directions(m),"full"));
+    if(user&&m.created_by===user.id&&m.status==="pending"){
+      card.append(button("Edit report",()=>openMachine(m),"full"));
+    }
+    $("machines").append(card);
+
+    if(map&&hasPin(m)){
+      const marker=L.marker([m.latitude,m.longitude],{
+        icon:L.divIcon({className:"face-marker",html:emoji,iconSize:[38,38],iconAnchor:[19,19]})
+      }).addTo(markers);
+      marker.bindTooltip(node("span",m.location_name||"Machine"));
+      marker.on("click",()=>card.scrollIntoView({block:"center"}));
+    }
+    if(origin&&hasPin(m)){
+      const x=(m.longitude-origin.lng)*Math.cos(origin.lat*Math.PI/180)*364000;
+      const y=(m.latitude-origin.lat)*364000;
+      const dot=button(emoji,()=>card.scrollIntoView({block:"center"}),"radar-face");
+      dot.style.left=`${Math.max(10,Math.min(90,50+x/radius*36))}%`;
+      dot.style.top=`${Math.max(10,Math.min(90,50-y/radius*36))}%`;
+      dot.setAttribute("aria-label",m.location_name||"Machine");$("radar").append(dot);
+    }
+  });
+  if(!results.length)$("machines").append(node("p",
+    "No matching machines yet. Add one to help build the map.","panel muted"));
+}
+function renderChoices(){
+  $("drinkChoices").replaceChildren();
+  const names=[...new Set([
+    ...drinks.filter(d=>d.status==="approved"||
+      (user&&d.suggested_by===user.id&&d.status==="pending")).map(d=>d.name),
+    ...selections.keys()
+  ])].sort();
+  const query=$("drinkSearch").value.trim().toLowerCase();
+  names.filter(n=>n.toLowerCase().includes(query)).forEach(name=>{
+    const row=node("div",undefined,"choice"),label=node("label",undefined,"check");
+    const check=document.createElement("input");check.type="checkbox";check.checked=selections.has(name);
+    const known=drinks.find(d=>d.name===name);
+    label.append(check,node("span",name+(known&&known.status==="approved"?"":" · pending approval")));
+    row.append(label);
+    check.onchange=()=>{
+      if(check.checked)selections.set(name,{name,id:known?known.id:null,price:null,stock:"unknown"});
+      else selections.delete(name);
+      renderChoices();
+    };
+    if(selections.has(name)){
+      const selected=selections.get(name),fields=node("div",undefined,"choice-fields");
+      const columns=node("div",undefined,"columns");
+      const priceLabel=node("label","Price per can"),price=document.createElement("input");
+      price.type="number";price.min="0.01";price.max="100000";price.step="0.01";
+      price.placeholder="Unknown";price.value=selected.price===null?"":selected.price;
+      price.oninput=()=>{selected.price=price.value===""?null:Number(price.value);};
+      priceLabel.append(price);
+      const stockLabel=node("label","Stock"),stock=document.createElement("select");
+      Object.entries(labels).forEach(([value,text])=>stock.add(new Option(text,value)));
+      stock.value=selected.stock;stock.onchange=()=>{selected.stock=stock.value;};
+      stockLabel.append(stock);columns.append(priceLabel,stockLabel);
+      fields.append(columns);row.append(fields);
+    }
+    $("drinkChoices").append(row);
+  });
+  $("selectedCount").textContent=`${selections.size} drink(s) selected`;
+}
+function openMachine(m=null){
+  if(!needLogin())return;
+  $("machineForm").reset();$("machineError").textContent="";
+  editing=m?m.id:null;selections=new Map();
+  if(m){
+    pin=hasPin(m)?{lat:m.latitude,lng:m.longitude}:null;
+    $("place").value=m.location_name;$("detail").value=m.location_details;
+    $("brand").value=m.brand;$("cards").checked=m.accepts_cards;
+    document.querySelectorAll('[name="setting"]').forEach(r=>{r.checked=r.value===m.setting;});
+    const currency=m.machine_drinks[0]?.currency||"USD";
+    if(!knownCurrencies.includes(currency))$("currency").add(new Option(currency,currency));
+    $("currency").value=currency;
+    m.machine_drinks.forEach(d=>{
+      if(d.drinks)selections.set(d.drinks.name,{
+        name:d.drinks.name,id:d.drink_id,price:d.price,stock:d.stock
+      });
+    });
+  }
+  updatePin();renderChoices();
+  $("machineTitle").textContent=m?"Edit machine":"Add a machine";
+  $("machineDialog").showModal();
+}
+$("machineForm").onsubmit=async event=>{
+  event.preventDefault();
+  if(!user)return;
+  $("saveMachine").disabled=true;$("machineError").textContent="";
+  try{
+    const chosen=[...selections.values()];
+    if(chosen.some(d=>d.price!==null&&(!Number.isFinite(d.price)||d.price<=0||d.price>100000))){
+      throw new Error("Check the drink prices, or leave them blank.");
+    }
+    const inventory=[];
+    for(const d of chosen){
+      let id=d.id;
+      if(!id){
+        const result=await db.from("drinks").insert({name:d.name}).select("id").single();
+        if(result.error){
+          throw new Error("Could not suggest "+d.name+": "+result.error.message+
+            ". It may already be awaiting approval. Refresh and try again.");
+        }
+        id=result.data.id;d.id=id;
+      }
+      inventory.push({drink_id:id,price:d.price,currency:$("currency").value,stock:d.stock});
+    }
+    const setting=document.querySelector('[name="setting"]:checked');
+    must(await db.rpc("save_soda_machine",{
+      p_id:editing,
+      p_report:{
+        location_name:$("place").value.trim(),
+        location_details:$("detail").value.trim(),
+        setting:setting?setting.value:null,brand:$("brand").value,
+        latitude:pin?pin.lat:null,longitude:pin?pin.lng:null,
+        accepts_cards:$("cards").checked
+      },
+      p_drinks:inventory
+    }));
+    const draft=!pin;
+    $("machineDialog").close();pin=null;editing=null;updatePin();
+    notify(draft?"Private draft saved online.":"Machine submitted. It waits for owner approval.");
+    await load();
+  }catch(error){$("machineError").textContent=error.message;}
+  finally{$("saveMachine").disabled=false;}
+};
+function directions(m){
+  $("routeTitle").textContent=m.location_name||"Machine";
+  $("routeContent").replaceChildren();
+  const link=node("a","Open walking directions in Apple Maps");
+  link.href="https://maps.apple.com/?daddr="+encodeURIComponent(m.latitude+","+m.longitude)+"&dirflg=w";
+  link.target="_blank";link.rel="noopener";
+  $("routeContent").append(node("p",m.location_details||"Extra location details not reported.","muted"),
+    link,node("p","Maps guides you to the pin. Check the report for the exact spot.","muted"));
+  $("routeDialog").showModal();
+}
+function renderRequests(){
+  $("requests").replaceChildren();
+  requests.forEach(r=>{
+    const card=node("article",undefined,"card");
+    card.append(node("h3",r.drink_name||"Drink not specified"),
+      node("p",r.area||"Area not reported.","muted"),
+      node("span",r.moderation_status==="approved"?r.status.toUpperCase():r.moderation_status.toUpperCase(),"tag"));
+    const related=finds.filter(f=>f.request_id===r.id);
+    related.filter(f=>f.status==="approved").forEach(f=>{
+      card.append(node("p",f.location_text||"Location not reported."),
+        node("p",f.details||"Details not reported.","muted"));
+    });
+    if(user)related.filter(f=>f.submitted_by===user.id).forEach(f=>{
+      card.append(node("p","Your find: "+f.status,"muted"));
+    });
+    if(r.status==="open"&&r.moderation_status==="approved"){
+      card.append(button("Found it!",()=>{
+        if(!needLogin())return;
+        currentRequest=r.id;$("findForm").reset();$("findError").textContent="";
+        $("findTitle").textContent="Found it: "+(r.drink_name||"requested drink");
+        $("findDialog").showModal();
+      },"full primary"));
+    }
+    $("requests").append(card);
+  });
+  if(!requests.length)$("requests").append(node("p","No requests yet. Start a search.","panel muted"));
+}
+async function ownerAction(b,action){
+  if(!owner)return;
+  b.disabled=true;
+  try{await action();notify("Review saved.");await load();}
+  catch(error){notify("Could not save review: "+error.message);b.disabled=false;}
+}
+function reviewButtons(item,approve,reject){
+  const row=node("div",undefined,"row");
+  const yes=button("Approve",()=>ownerAction(yes,approve),"primary");
+  const no=button("Reject",()=>ownerAction(no,reject));
+  row.append(yes,no);item.append(row);
+}
+async function setStatus(table,id,column,value){
+  must(await db.from(table).update({[column]:value}).eq("id",id).select("id").single());
+}
+function renderOwner(){
+  $("ownerPanel").hidden=!owner;$("approvals").replaceChildren();
+  if(!owner)return;
+  const container=$("approvals");
+  let count=0;
+  function item(title,description){
+    count++;
+    const n=node("div",undefined,"pending");
+    n.append(node("strong",title),node("p",description,"muted"));container.append(n);return n;
+  }
+  drinks.filter(d=>d.status==="pending").forEach(d=>{
+    const n=item("Drink suggestion",d.name);
+    reviewButtons(n,()=>setStatus("drinks",d.id,"status","approved"),
+      ()=>setStatus("drinks",d.id,"status","rejected"));
+  });
+  machines.filter(m=>m.status==="pending"&&hasPin(m)).forEach(m=>{
+    const n=item("Machine: "+(m.location_name||"Unnamed"),
+      [m.setting,m.location_details,m.brand,`${m.latitude}, ${m.longitude}`].filter(Boolean).join(" · "));
+    m.machine_drinks.forEach(d=>n.append(node("p",
+      nameOf(d)+" · "+(d.price===null?"Price unknown":amount(d.price,d.currency))+
+      " · "+labels[d.stock],"muted")));
+    n.append(node("p",m.accepts_cards?"Accepts cards":"Card payments not reported.","muted"));
+    reviewButtons(n,()=>setStatus("machines",m.id,"status","approved"),
+      ()=>setStatus("machines",m.id,"status","rejected"));
+  });
+  requests.filter(r=>r.moderation_status==="pending").forEach(r=>{
+    const n=item("Lookout request",`${r.drink_name||"Drink not specified"} · ${r.area||"Area not reported"}`);
+    reviewButtons(n,()=>setStatus("lookout_requests",r.id,"moderation_status","approved"),
+      ()=>setStatus("lookout_requests",r.id,"moderation_status","rejected"));
+  });
+  finds.filter(f=>f.status==="pending").forEach(f=>{
+    const request=requests.find(r=>r.id===f.request_id);
+    const n=item("Found it: "+(request?.drink_name||"Request"),
+      (f.location_text||"Location not reported")+" · "+(f.details||"Details not reported"));
+    n.append(node("small","Approval awards 10 points once per request."));
+    reviewButtons(n,async()=>must(await db.rpc("approve_soda_find",{p_find_id:f.id})),
+      async()=>must(await db.rpc("reject_soda_find",{p_find_id:f.id})));
+  });
+  if(!count)container.append(node("p","No submissions awaiting review.","muted"));
+}
+$("loginForm").onsubmit=async event=>{
+  event.preventDefault();$("signIn").disabled=true;$("loginError").textContent="";
+  try{
+    const result=await db.auth.signInWithPassword({
+      email:$("email").value.trim(),password:$("password").value
+    });
+    $("password").value="";must(result);user=result.data.user;
+    owner=must(await db.rpc("is_soda_owner"))===true;
+    $("loginDialog").close();updateAccount();notify("Signed in.");await load();
+  }catch(error){$("loginError").textContent=error.message;}
+  finally{$("signIn").disabled=false;}
+};
+function updateAccount(){
+  $("accountStatus").textContent=user?(owner?"Signed in · Owner":"Signed in"):"Browsing approved reports";
+  $("accountHelp").textContent=user?
+    "Your reports save online. New submissions wait for review.":
+    "Sign in to add machines, request drinks, and earn points.";
+  $("openLogin").hidden=Boolean(user);$("logout").hidden=!user;
+}
+$("logout").onclick=async()=>{
+  try{
+    must(await db.auth.signOut());
+    user=null;owner=false;editing=null;selections.clear();
+    updateAccount();notify("Signed out.");await load();
+  }catch(error){notify(error.message);}
+};
+$("requestForm").onsubmit=async event=>{
+  event.preventDefault();if(!user)return;
+  $("saveRequest").disabled=true;$("requestError").textContent="";
+  try{
+    must(await db.from("lookout_requests").insert({
+      drink_name:$("wantedDrink").value.trim(),area:$("wantedArea").value.trim()
+    }));
+    $("requestDialog").close();notify("Request submitted for review.");await load();
+  }catch(error){$("requestError").textContent=error.message;}
+  finally{$("saveRequest").disabled=false;}
+};
+$("findForm").onsubmit=async event=>{
+  event.preventDefault();if(!user)return;
+  $("saveFind").disabled=true;$("findError").textContent="";
+  try{
+    must(await db.from("lookout_finds").insert({
+      request_id:currentRequest,location_text:$("foundLocation").value.trim(),
+      details:$("foundDetail").value.trim()
+    }));
+    $("findDialog").close();notify("Find submitted for approval.");await load();
+  }catch(error){$("findError").textContent=error.message;}
+  finally{$("saveFind").disabled=false;}
+};
+
+$("openLogin").onclick=()=>needLogin();
+$("cancelLogin").onclick=()=>$("loginDialog").close();
+$("addMachine").onclick=()=>openMachine();
+$("newRequest").onclick=()=>{
+  if(!needLogin())return;
+  $("requestForm").reset();$("requestError").textContent="";$("requestDialog").showModal();
+};
+$("cancelRequest").onclick=()=>$("requestDialog").close();
+$("cancelFind").onclick=()=>$("findDialog").close();
+$("cancelMachine").onclick=()=>{$("machineDialog").close();picking=false;};
+$("choosePin").onclick=()=>{
+  if(!map){$("machineError").textContent="Map unavailable. Save a draft or use your location.";return;}
+  picking=true;$("machineDialog").close();
+  notify("Tap the map where the machine is.");$("map").scrollIntoView({block:"center"});
+};
+$("clearPin").onclick=()=>{pin=null;updatePin();};
+$("clearSetting").onclick=()=>{
+  document.querySelectorAll('[name="setting"]').forEach(r=>{r.checked=false;});
+};
+$("locate").onclick=()=>locate(false);
+$("useLocation").onclick=()=>locate(true);
+$("drinkSearch").oninput=renderChoices;
+$("addCustomDrink").onclick=()=>{
+  const entered=$("customDrink").value.trim();if(!entered)return;
+  const known=drinks.find(d=>d.name.toLowerCase()===entered.toLowerCase());
+  const previous=[...selections.keys()].find(n=>n.toLowerCase()===entered.toLowerCase());
+  const name=known?known.name:previous||entered;
+  if(!selections.has(name))selections.set(name,{
+    name,id:known?known.id:null,price:null,stock:"unknown"
+  });
+  $("customDrink").value="";$("drinkSearch").value="";renderChoices();
+};
+$("closeRoute").onclick=()=>$("routeDialog").close();
+$("drinkFilter").onchange=renderMachines;
+$("hideEmpty").onchange=renderMachines;
+$("refresh").onclick=()=>{notify("Refreshing saved reports—not detecting machines or live stock.");load();};
+updatePin();updateAccount();load();
+})();
+</script>
+</body>
+</html>
